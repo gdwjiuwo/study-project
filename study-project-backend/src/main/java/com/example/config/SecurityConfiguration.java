@@ -17,6 +17,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.io.IOException;
 
@@ -42,12 +44,27 @@ public class SecurityConfiguration {
 
                 .logout(logout->{
                         logout.logoutUrl("/api/auth/logout");//推出登录地址
+                        logout.logoutSuccessHandler(this::onAuthenticationSuccess);
                         logout.logoutSuccessUrl("/");//设置退出登录成功后跳转的地址为首页"/"
                         logout.permitAll();
                 })
                 .exceptionHandling(conf -> {
                     conf
                             .authenticationEntryPoint(this::onAuthenticationFailure);
+                })
+                .cors(conf -> {
+                    CorsConfiguration cors = new CorsConfiguration();
+                    //添加前端站点地址，这样就可以告诉浏览器信任了
+                    cors.addAllowedOrigin("http://localhost:5173");
+                    //虽然也可以像这样允许所有 cors.addAllowedOriginPattern("*");
+                    //但是这样并不安全，我们应该只许可给我们信任的站点
+                    cors.setAllowCredentials(true);  //允许跨域请求中携带Cookie
+                    cors.addAllowedHeader("*");   //其他的也可以配置，为了方便这里就 * 了
+                    cors.addAllowedMethod("*");
+                    cors.addExposedHeader("*");
+                    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                    source.registerCorsConfiguration("/**", cors);  //直接针对于所有地址生效
+                    conf.configurationSource(source);
                 })
                 .csrf(AbstractHttpConfigurer::disable)// 关闭 CSRF 保护
                 .userDetailsService(authorizeService)//自定义用户登录
@@ -56,6 +73,8 @@ public class SecurityConfiguration {
 
 
     }
+
+
     @Bean//自定义认证管理器
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
         AuthenticationManagerBuilder authManagerBuilder =
@@ -71,7 +90,10 @@ public class SecurityConfiguration {
   } 
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
         response.setCharacterEncoding("UTF-8");
+        if (request.getRequestURI().endsWith("/login"))
         response.getWriter().write(JSONObject.toJSONString(RestBean.success("登录成功")));// 登录成功后返回"登录成功"
+        else if (request.getRequestURI().endsWith("/logout"))
+            response.getWriter().write(JSONObject.toJSONString(RestBean.success("退出登录成功")));
 }
    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException {
         response.setCharacterEncoding("UTF-8");
