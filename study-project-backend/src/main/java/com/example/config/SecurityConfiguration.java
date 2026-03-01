@@ -17,9 +17,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
+import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 
 @Configuration
@@ -27,6 +30,8 @@ import java.io.IOException;
 public class SecurityConfiguration {
     @Resource
     AuthorizeService authorizeService;
+    @Resource
+    DataSource dataSource;
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
@@ -41,6 +46,11 @@ public class SecurityConfiguration {
 
                 }
                 )
+                .rememberMe(conf -> {
+                    conf.rememberMeParameter("remember");
+                    conf.tokenRepository(this.tokenRepository());
+                    conf.tokenValiditySeconds(3600*24*7);
+                })
 
                 .logout(logout->{
                         logout.logoutUrl("/api/auth/logout");//推出登录地址
@@ -72,6 +82,13 @@ public class SecurityConfiguration {
 
 
 
+    }
+    @Bean
+    public PersistentTokenRepository tokenRepository(){
+        JdbcTokenRepositoryImpl jdbcTokenRepository =new JdbcTokenRepositoryImpl();
+        jdbcTokenRepository.setDataSource(dataSource);
+        jdbcTokenRepository.setCreateTableOnStartup(false);
+        return jdbcTokenRepository;
     }
 
 

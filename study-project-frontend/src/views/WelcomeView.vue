@@ -1,5 +1,5 @@
 <script setup>
-import lalalaImage from '@/assets/lalala.jpg'
+import lalalaImage from '@/assets/lalala.png'
 </script>
 
 <template>
@@ -12,8 +12,12 @@ import lalalaImage from '@/assets/lalala.jpg'
       <div style="font-size: 30px;font-weight: bold">登录测试界面</div>
       <div style="margin-top: 14px">该模块用于测试功能</div>
     </div>
-    <div style="width: 600px;background: white">
-       <router-view></router-view>
+    <div style="width: 600px;background: white;z-index: 1">
+      <router-view v-slot="{ Component }">
+        <transition name="el-fade-in-linear">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </div>
   </div>
 </template>
